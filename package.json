@@ -1,0 +1,46 @@
+{
+  "name": "709-1s0",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:preview": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/cli": "^8.3.3",
+    "@capacitor/core": "^8.3.3",
+    "phaser": "^3.87.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
+    "vite": "^6.0.0"
+  },
+  "build": {
+    "appId": "com.rudransh.709-1s0",
+    "productName": "709 - 1s0",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": true,
+      "deleteAppDataOnUninstall": true
+    },
+    "directories": {
+      "output": "release"
+    }
+  }
+}
