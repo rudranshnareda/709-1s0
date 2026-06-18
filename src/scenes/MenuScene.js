@@ -19,7 +19,7 @@ export default class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     // Title
-    const title = this.add.text(W / 2, H * 0.32, '709 - 1s0', {
+    const title = this.add.text(W / 2, H * 0.32, 'where are you?', {
       fontFamily: FONT, fontSize: '52px', fill: '#FFFFFF',
       stroke: '#FFD700', strokeThickness: 2,
       shadow: { offsetX: 4, offsetY: 4, color: '#7a5900', blur: 10, stroke: true, fill: true },

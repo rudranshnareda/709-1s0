@@ -18,7 +18,7 @@ export default class EndingScene extends Phaser.Scene {
     this.load.image('reunion_kiss', 'assets/characters/me/reunion_kiss.png');
     this.load.image('goldh',        'assets/ui/goldh.png');
     this.load.image('end_photo',    'assets/cutscene/photo.png');
-    this.load.text('end_message',   'assets/cutscene/message.txt');
+    this.load.image('end_message',  'assets/cutscene/message.jpeg');
 
     this.load.on('loaderror', (f) => console.warn('Ending asset missing:', f.key));
   }
@@ -132,20 +132,32 @@ export default class EndingScene extends Phaser.Scene {
   _buildPhotoPhase() {
     this._phase = 'photo';
 
-    const msg = this.cache.text.get('end_message') ?? '';
+    const photoY = 130;
+    const letterY = 310;
 
-    // Photo — smaller so message fits below
-    const frame = this.add.rectangle(CX, 158, 364, 244, 0xffffff)
+    // Photo
+    const frame = this.add.rectangle(CX, photoY, 364, 204, 0xffffff)
       .setDepth(4).setAlpha(0);
-    const photo = this.add.image(CX, 158, 'end_photo')
-      .setDepth(5).setDisplaySize(360, 240).setAlpha(0);
+    const photo = this.add.image(CX, photoY, 'end_photo')
+      .setDepth(5).setDisplaySize(360, 200).setAlpha(0);
 
-    const msgText = this.add.text(CX, 294, msg.trim(), {
-      fontFamily: FONT, fontSize: '10px', fill: '#FFD700',
-      stroke: '#000000', strokeThickness: 2,
-      align: 'center', lineSpacing: 3,
-      wordWrap: { width: 700 },
-    }).setOrigin(0.5, 0).setDepth(6).setAlpha(0);
+    // Photo download button
+    const dlPhoto = this.add.text(CX + 190, photoY - 96, '⬇', {
+      fontFamily: FONT, fontSize: '14px', fill: '#FFD700',
+    }).setOrigin(0.5).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
+    dlPhoto.on('pointerdown', () => this._downloadAsset('end_photo', 'photo.png'));
+
+    // Letter image
+    const letterFrame = this.add.rectangle(CX, letterY, 364, 204, 0xffffff)
+      .setDepth(4).setAlpha(0);
+    const letter = this.add.image(CX, letterY, 'end_message')
+      .setDepth(5).setDisplaySize(360, 200).setAlpha(0);
+
+    // Letter download button
+    const dlLetter = this.add.text(CX + 190, letterY - 96, '⬇', {
+      fontFamily: FONT, fontSize: '14px', fill: '#FFD700',
+    }).setOrigin(0.5).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
+    dlLetter.on('pointerdown', () => this._downloadAsset('end_message', 'message.jpeg'));
 
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
@@ -153,7 +165,8 @@ export default class EndingScene extends Phaser.Scene {
 
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
-      this.tweens.add({ targets: msgText, alpha: 1, duration: 600 });
+      this.tweens.add({ targets: [letterFrame, letter], alpha: 1, duration: 600 });
+      this.tweens.add({ targets: [dlPhoto, dlLetter], alpha: 1, duration: 400 });
       this.time.delayedCall(500, () => {
         this.tweens.add({ targets: hint, alpha: 1, duration: 300 });
         this.tweens.add({ targets: hint, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
@@ -161,15 +174,31 @@ export default class EndingScene extends Phaser.Scene {
       });
     });
 
-    this.input.once('pointerdown', () => {
+    this.input.once('pointerdown', (ptr) => {
       if (this._phase !== 'photo_ready') return;
-      this._phase = 'done';
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        [frame, photo, msgText, hint].forEach(o => o.destroy());
-        this._buildCreditsPhase();
-      });
+      // ignore clicks on download buttons
+      if (ptr.downElement && ptr.downElement.tagName === 'CANVAS') {
+        this._phase = 'done';
+        this.cameras.main.fadeOut(800, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          [frame, photo, dlPhoto, letterFrame, letter, dlLetter, hint].forEach(o => o.destroy());
+          this._buildCreditsPhase();
+        });
+      }
     });
+  }
+
+  _downloadAsset(key, filename) {
+    const texture = this.textures.get(key);
+    if (!texture) return;
+    const canvas = this.textures.createCanvas('_dl_tmp', texture.source[0].width, texture.source[0].height);
+    canvas.draw(0, 0, texture.frames['__BASE']);
+    const dataURL = canvas.getCanvas().toDataURL('image/png');
+    canvas.destroy();
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = filename;
+    a.click();
   }
 
   // ── PHASE 4 : Credits ─────────────────────────────────────────────────────
@@ -184,7 +213,7 @@ export default class EndingScene extends Phaser.Scene {
       { text: 'A  J A I P U R  T A L E',   size: '11px', color: '#9999DD', dy: -148 },
       { text: '————————————————————',       size: '10px', color: '#222244', dy: -100 },
       { text: 'Made with love by',          size: '10px', color: '#888899', dy:  -62 },
-      { text: 'Rudransh',                   size: '22px', color: '#FFD700', dy:  -20 },
+      { text: 'Shekhar',                    size: '22px', color: '#FFD700', dy:  -20 },
       { text: '————————————————————',       size: '10px', color: '#222244', dy:   30 },
       { text: 'Built with',                 size: '10px', color: '#888899', dy:   68 },
       { text: 'Claude Code',                size: '14px', color: '#cc99ff', dy:  100 },
