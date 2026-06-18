@@ -18,7 +18,7 @@ export default class EndingScene extends Phaser.Scene {
     this.load.image('reunion_kiss', 'assets/characters/me/reunion_kiss.png');
     this.load.image('goldh',        'assets/ui/goldh.png');
     this.load.image('end_photo',    'assets/cutscene/photo.png');
-    this.load.text('end_message',   'assets/cutscene/message.txt');
+    this.load.image('end_message',  'assets/cutscene/message.jpeg');
 
     this.load.on('loaderror', (f) => console.warn('Ending asset missing:', f.key));
   }
@@ -132,20 +132,17 @@ export default class EndingScene extends Phaser.Scene {
   _buildPhotoPhase() {
     this._phase = 'photo';
 
-    const msg = this.cache.text.get('end_message') ?? '';
-
-    // Photo — smaller so message fits below
-    const frame = this.add.rectangle(CX, 158, 364, 244, 0xffffff)
+    // Photo — top half
+    const frame = this.add.rectangle(CX, 148, 364, 244, 0xffffff)
       .setDepth(4).setAlpha(0);
-    const photo = this.add.image(CX, 158, 'end_photo')
+    const photo = this.add.image(CX, 148, 'end_photo')
       .setDepth(5).setDisplaySize(360, 240).setAlpha(0);
 
-    const msgText = this.add.text(CX, 294, msg.trim(), {
-      fontFamily: FONT, fontSize: '10px', fill: '#FFD700',
-      stroke: '#000000', strokeThickness: 2,
-      align: 'center', lineSpacing: 3,
-      wordWrap: { width: 700 },
-    }).setOrigin(0.5, 0).setDepth(6).setAlpha(0);
+    // Handwritten letter — bottom half, scaled to fit width
+    const letter = this.add.image(CX, 430, 'end_message')
+      .setDepth(5).setAlpha(0);
+    const letterScale = Math.min((GAME_WIDTH - 40) / letter.width, 260 / letter.height);
+    letter.setScale(letterScale);
 
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
@@ -153,7 +150,7 @@ export default class EndingScene extends Phaser.Scene {
 
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
-      this.tweens.add({ targets: msgText, alpha: 1, duration: 600 });
+      this.tweens.add({ targets: letter, alpha: 1, duration: 600 });
       this.time.delayedCall(500, () => {
         this.tweens.add({ targets: hint, alpha: 1, duration: 300 });
         this.tweens.add({ targets: hint, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
@@ -166,7 +163,7 @@ export default class EndingScene extends Phaser.Scene {
       this._phase = 'done';
       this.cameras.main.fadeOut(800, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
-        [frame, photo, msgText, hint].forEach(o => o.destroy());
+        [frame, photo, letter, hint].forEach(o => o.destroy());
         this._buildCreditsPhase();
       });
     });
@@ -184,7 +181,7 @@ export default class EndingScene extends Phaser.Scene {
       { text: 'A  J A I P U R  T A L E',   size: '11px', color: '#9999DD', dy: -148 },
       { text: '————————————————————',       size: '10px', color: '#222244', dy: -100 },
       { text: 'Made with love by',          size: '10px', color: '#888899', dy:  -62 },
-      { text: 'Rudransh',                   size: '22px', color: '#FFD700', dy:  -20 },
+      { text: 'Shekhar',                    size: '22px', color: '#FFD700', dy:  -20 },
       { text: '————————————————————',       size: '10px', color: '#222244', dy:   30 },
       { text: 'Built with',                 size: '10px', color: '#888899', dy:   68 },
       { text: 'Claude Code',                size: '14px', color: '#cc99ff', dy:  100 },
