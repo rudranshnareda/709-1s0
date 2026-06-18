@@ -169,36 +169,30 @@ export default class EndingScene extends Phaser.Scene {
       .setDepth(4).setAlpha(0);
 
     // ── Button helper ──────────────────────────────────────
-    const makeBtn = (x, y, label, color) => {
-      const bg = this.add.rectangle(x, y, 0, BTN_ROW_H - 2, color, 0.9)
-        .setDepth(7).setAlpha(0);
+    const makeBtn = (x, y, label) => {
       const txt = this.add.text(x, y, label, {
-        fontFamily: FONT, fontSize: '11px', fill: '#000000',
+        fontFamily: FONT, fontSize: '11px', fill: '#ffffff',
       }).setOrigin(0.5).setDepth(8).setAlpha(0).setInteractive({ useHandCursor: true });
-      // size bg to text
-      this.time.delayedCall(0, () => {
-        bg.width = txt.width + 20;
-      });
-      return { bg, txt };
+      return txt;
     };
 
     // Photo: single download button centred under it
-    const dl1 = makeBtn(CX, photoBtnY, '⬇  save photo', 0xFFD700);
-    dl1.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_photo', 'photo.png'); });
+    const dl1 = makeBtn(CX, photoBtnY, '⬇  save photo');
+    dl1.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_photo', 'photo.png'); });
 
     // Letter: two buttons — expand on left, download on right
-    const btnSpacing = 80;
-    const exp = makeBtn(CX - btnSpacing, letterBtnY, '⛶  expand', 0x88ccff);
-    exp.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._showLetterFullscreen(); });
+    const btnSpacing = 90;
+    const exp = makeBtn(CX - btnSpacing, letterBtnY, '⛶  expand');
+    exp.on('pointerdown', (p) => { p.event.stopPropagation(); this._showLetterFullscreen(); });
 
-    const dl2 = makeBtn(CX + btnSpacing, letterBtnY, '⬇  save letter', 0xFFD700);
-    dl2.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_message', 'message.jpeg'); });
+    const dl2 = makeBtn(CX + btnSpacing, letterBtnY, '⬇  save letter');
+    dl2.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_message', 'message.jpeg'); });
 
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
     }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
-    const allBtns = [dl1.bg, dl1.txt, exp.bg, exp.txt, dl2.bg, dl2.txt];
+    const allBtns = [dl1, exp, dl2];
 
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
