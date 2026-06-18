@@ -135,58 +135,75 @@ export default class EndingScene extends Phaser.Scene {
     const fitScale = (img, maxW, maxH) =>
       Math.min(maxW / img.width, maxH / img.height);
 
-    const PAD = 4;
+    const MAX_IMG_W = 380;
+    const MAX_IMG_H = 240;
+    const BTN_ROW_H = 32;  // height reserved for button row under each image
+    const BTN_GAP   = 8;   // gap between image bottom and button row
+    const BLOCK_GAP = 18;  // gap between photo block and letter block
 
-    // ── Photo ──────────────────────────────────────────────
-    const photo = this.add.image(CX, 0, 'end_photo')
-      .setDepth(5).setAlpha(0);
-    photo.setScale(fitScale(photo, 420, 260));
-    const photoH = photo.displayHeight;
-    const photoY = PAD + photoH / 2;
+    // ── Measure images ─────────────────────────────────────
+    const photo = this.add.image(CX, 0, 'end_photo').setDepth(5).setAlpha(0);
+    photo.setScale(fitScale(photo, MAX_IMG_W, MAX_IMG_H));
+    const pW = photo.displayWidth, pH = photo.displayHeight;
+
+    const letter = this.add.image(CX, 0, 'end_message').setDepth(5).setAlpha(0);
+    letter.setScale(fitScale(letter, MAX_IMG_W, MAX_IMG_H));
+    const lW = letter.displayWidth, lH = letter.displayHeight;
+
+    // ── Vertical layout — centred in canvas ───────────────
+    const totalH = pH + BTN_GAP + BTN_ROW_H + BLOCK_GAP + lH + BTN_GAP + BTN_ROW_H;
+    const startY  = CY - totalH / 2;
+
+    const photoY      = startY + pH / 2;
+    const photoBtnY   = photoY  + pH / 2 + BTN_GAP + BTN_ROW_H / 2;
+    const letterY     = photoBtnY + BTN_ROW_H / 2 + BLOCK_GAP + lH / 2;
+    const letterBtnY  = letterY + lH / 2 + BTN_GAP + BTN_ROW_H / 2;
+
     photo.setY(photoY);
-
-    const frame = this.add.rectangle(CX, photoY, photo.displayWidth + 8, photoH + 8, 0xffffff)
-      .setDepth(4).setAlpha(0);
-
-    const dlPhoto = this.add.text(
-      CX + photo.displayWidth / 2 + 2, photoY - photoH / 2 - 1, '⬇', {
-        fontFamily: FONT, fontSize: '13px', fill: '#FFD700', backgroundColor: '#00000088',
-      }).setOrigin(0, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
-    dlPhoto.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_photo', 'photo.png'); });
-
-    // ── Letter ─────────────────────────────────────────────
-    const letterGap = 10;
-    const letter = this.add.image(CX, 0, 'end_message')
-      .setDepth(5).setAlpha(0);
-    letter.setScale(fitScale(letter, 420, 260));
-    const letterH = letter.displayHeight;
-    const letterY = photoY + photoH / 2 + letterGap + letterH / 2;
     letter.setY(letterY);
 
-    const letterFrame = this.add.rectangle(CX, letterY, letter.displayWidth + 8, letterH + 8, 0xffffff)
+    // ── Frames ─────────────────────────────────────────────
+    const frame = this.add.rectangle(CX, photoY, pW + 8, pH + 8, 0xffffff)
+      .setDepth(4).setAlpha(0);
+    const letterFrame = this.add.rectangle(CX, letterY, lW + 8, lH + 8, 0xffffff)
       .setDepth(4).setAlpha(0);
 
-    const dlLetter = this.add.text(
-      CX + letter.displayWidth / 2 + 2, letterY - letterH / 2 - 1, '⬇', {
-        fontFamily: FONT, fontSize: '13px', fill: '#FFD700', backgroundColor: '#00000088',
-      }).setOrigin(0, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
-    dlLetter.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_message', 'message.jpeg'); });
+    // ── Button helper ──────────────────────────────────────
+    const makeBtn = (x, y, label, color) => {
+      const bg = this.add.rectangle(x, y, 0, BTN_ROW_H - 2, color, 0.9)
+        .setDepth(7).setAlpha(0);
+      const txt = this.add.text(x, y, label, {
+        fontFamily: FONT, fontSize: '11px', fill: '#000000',
+      }).setOrigin(0.5).setDepth(8).setAlpha(0).setInteractive({ useHandCursor: true });
+      // size bg to text
+      this.time.delayedCall(0, () => {
+        bg.width = txt.width + 20;
+      });
+      return { bg, txt };
+    };
 
-    // Expand button for letter
-    const expandBtn = this.add.text(
-      CX - letter.displayWidth / 2 - 2, letterY - letterH / 2 - 1, '⛶', {
-        fontFamily: FONT, fontSize: '13px', fill: '#aaddff', backgroundColor: '#00000088',
-      }).setOrigin(1, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
-    expandBtn.on('pointerdown', (p) => { p.event.stopPropagation(); this._showLetterFullscreen(); });
+    // Photo: single download button centred under it
+    const dl1 = makeBtn(CX, photoBtnY, '⬇  save photo', 0xFFD700);
+    dl1.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_photo', 'photo.png'); });
+
+    // Letter: two buttons — expand on left, download on right
+    const btnSpacing = 80;
+    const exp = makeBtn(CX - btnSpacing, letterBtnY, '⛶  expand', 0x88ccff);
+    exp.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._showLetterFullscreen(); });
+
+    const dl2 = makeBtn(CX + btnSpacing, letterBtnY, '⬇  save letter', 0xFFD700);
+    dl2.txt.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_message', 'message.jpeg'); });
 
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
     }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
+    const allBtns = [dl1.bg, dl1.txt, exp.bg, exp.txt, dl2.bg, dl2.txt];
+
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
       this.tweens.add({ targets: [letterFrame, letter], alpha: 1, duration: 600 });
-      this.tweens.add({ targets: [dlPhoto, dlLetter, expandBtn], alpha: 1, duration: 400 });
+      this.tweens.add({ targets: allBtns, alpha: 1, duration: 400 });
       this.time.delayedCall(500, () => {
         this.tweens.add({ targets: hint, alpha: 1, duration: 300 });
         this.tweens.add({ targets: hint, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
@@ -199,7 +216,7 @@ export default class EndingScene extends Phaser.Scene {
       this._phase = 'done';
       this.cameras.main.fadeOut(800, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
-        [frame, photo, dlPhoto, letterFrame, letter, dlLetter, expandBtn, hint].forEach(o => o.destroy());
+        [frame, photo, letterFrame, letter, ...allBtns, hint].forEach(o => o.destroy());
         this._buildCreditsPhase();
       });
     });
