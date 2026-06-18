@@ -132,32 +132,52 @@ export default class EndingScene extends Phaser.Scene {
   _buildPhotoPhase() {
     this._phase = 'photo';
 
-    const photoY = 130;
-    const letterY = 310;
+    const fitScale = (img, maxW, maxH) =>
+      Math.min(maxW / img.width, maxH / img.height);
 
-    // Photo
-    const frame = this.add.rectangle(CX, photoY, 364, 204, 0xffffff)
+    const PAD = 4;
+
+    // ── Photo ──────────────────────────────────────────────
+    const photo = this.add.image(CX, 0, 'end_photo')
+      .setDepth(5).setAlpha(0);
+    photo.setScale(fitScale(photo, 420, 260));
+    const photoH = photo.displayHeight;
+    const photoY = PAD + photoH / 2;
+    photo.setY(photoY);
+
+    const frame = this.add.rectangle(CX, photoY, photo.displayWidth + 8, photoH + 8, 0xffffff)
       .setDepth(4).setAlpha(0);
-    const photo = this.add.image(CX, photoY, 'end_photo')
-      .setDepth(5).setDisplaySize(360, 200).setAlpha(0);
 
-    // Photo download button
-    const dlPhoto = this.add.text(CX + 190, photoY - 96, '⬇', {
-      fontFamily: FONT, fontSize: '14px', fill: '#FFD700',
-    }).setOrigin(0.5).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
-    dlPhoto.on('pointerdown', () => this._downloadAsset('end_photo', 'photo.png'));
+    const dlPhoto = this.add.text(
+      CX + photo.displayWidth / 2 + 2, photoY - photoH / 2 - 1, '⬇', {
+        fontFamily: FONT, fontSize: '13px', fill: '#FFD700', backgroundColor: '#00000088',
+      }).setOrigin(0, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
+    dlPhoto.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_photo', 'photo.png'); });
 
-    // Letter image
-    const letterFrame = this.add.rectangle(CX, letterY, 364, 204, 0xffffff)
+    // ── Letter ─────────────────────────────────────────────
+    const letterGap = 10;
+    const letter = this.add.image(CX, 0, 'end_message')
+      .setDepth(5).setAlpha(0);
+    letter.setScale(fitScale(letter, 420, 260));
+    const letterH = letter.displayHeight;
+    const letterY = photoY + photoH / 2 + letterGap + letterH / 2;
+    letter.setY(letterY);
+
+    const letterFrame = this.add.rectangle(CX, letterY, letter.displayWidth + 8, letterH + 8, 0xffffff)
       .setDepth(4).setAlpha(0);
-    const letter = this.add.image(CX, letterY, 'end_message')
-      .setDepth(5).setDisplaySize(360, 200).setAlpha(0);
 
-    // Letter download button
-    const dlLetter = this.add.text(CX + 190, letterY - 96, '⬇', {
-      fontFamily: FONT, fontSize: '14px', fill: '#FFD700',
-    }).setOrigin(0.5).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
-    dlLetter.on('pointerdown', () => this._downloadAsset('end_message', 'message.jpeg'));
+    const dlLetter = this.add.text(
+      CX + letter.displayWidth / 2 + 2, letterY - letterH / 2 - 1, '⬇', {
+        fontFamily: FONT, fontSize: '13px', fill: '#FFD700', backgroundColor: '#00000088',
+      }).setOrigin(0, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
+    dlLetter.on('pointerdown', (p) => { p.event.stopPropagation(); this._downloadAsset('end_message', 'message.jpeg'); });
+
+    // Expand button for letter
+    const expandBtn = this.add.text(
+      CX - letter.displayWidth / 2 - 2, letterY - letterH / 2 - 1, '⛶', {
+        fontFamily: FONT, fontSize: '13px', fill: '#aaddff', backgroundColor: '#00000088',
+      }).setOrigin(1, 1).setDepth(7).setAlpha(0).setInteractive({ useHandCursor: true });
+    expandBtn.on('pointerdown', (p) => { p.event.stopPropagation(); this._showLetterFullscreen(); });
 
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
@@ -166,7 +186,7 @@ export default class EndingScene extends Phaser.Scene {
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
       this.tweens.add({ targets: [letterFrame, letter], alpha: 1, duration: 600 });
-      this.tweens.add({ targets: [dlPhoto, dlLetter], alpha: 1, duration: 400 });
+      this.tweens.add({ targets: [dlPhoto, dlLetter, expandBtn], alpha: 1, duration: 400 });
       this.time.delayedCall(500, () => {
         this.tweens.add({ targets: hint, alpha: 1, duration: 300 });
         this.tweens.add({ targets: hint, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
@@ -174,29 +194,45 @@ export default class EndingScene extends Phaser.Scene {
       });
     });
 
-    this.input.once('pointerdown', (ptr) => {
+    this.input.on('pointerdown', () => {
       if (this._phase !== 'photo_ready') return;
-      // ignore clicks on download buttons
-      if (ptr.downElement && ptr.downElement.tagName === 'CANVAS') {
-        this._phase = 'done';
-        this.cameras.main.fadeOut(800, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          [frame, photo, dlPhoto, letterFrame, letter, dlLetter, hint].forEach(o => o.destroy());
-          this._buildCreditsPhase();
-        });
-      }
+      this._phase = 'done';
+      this.cameras.main.fadeOut(800, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        [frame, photo, dlPhoto, letterFrame, letter, dlLetter, expandBtn, hint].forEach(o => o.destroy());
+        this._buildCreditsPhase();
+      });
     });
+  }
+
+  _showLetterFullscreen() {
+    const DEPTH = 50;
+    const overlay = this.add.rectangle(CX, CY, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.92)
+      .setDepth(DEPTH).setInteractive();
+
+    const img = this.add.image(CX, CY, 'end_message').setDepth(DEPTH + 1);
+    const s = Math.min((GAME_WIDTH - 40) / img.width, (GAME_HEIGHT - 60) / img.height);
+    img.setScale(s);
+
+    const close = this.add.text(GAME_WIDTH - 20, 16, '✕', {
+      fontFamily: FONT, fontSize: '18px', fill: '#ffffff',
+    }).setOrigin(1, 0).setDepth(DEPTH + 2).setInteractive({ useHandCursor: true });
+
+    const dismiss = () => { overlay.destroy(); img.destroy(); close.destroy(); };
+    close.on('pointerdown', dismiss);
+    overlay.on('pointerdown', dismiss);
   }
 
   _downloadAsset(key, filename) {
     const texture = this.textures.get(key);
     if (!texture) return;
-    const canvas = this.textures.createCanvas('_dl_tmp', texture.source[0].width, texture.source[0].height);
-    canvas.draw(0, 0, texture.frames['__BASE']);
-    const dataURL = canvas.getCanvas().toDataURL('image/png');
-    canvas.destroy();
+    const src = texture.source[0];
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width  = src.width;
+    tmpCanvas.height = src.height;
+    tmpCanvas.getContext('2d').drawImage(src.image, 0, 0);
     const a = document.createElement('a');
-    a.href = dataURL;
+    a.href = tmpCanvas.toDataURL('image/png');
     a.download = filename;
     a.click();
   }
