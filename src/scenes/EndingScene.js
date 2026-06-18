@@ -144,13 +144,18 @@ export default class EndingScene extends Phaser.Scene {
     const letterScale = Math.min((GAME_WIDTH - 40) / letter.width, 260 / letter.height);
     letter.setScale(letterScale);
 
+    const photoDlBtn  = this._makeDownloadBtn(CX + 192, 148, 'assets/cutscene/photo.png',    'photo.png');
+    const letterDlBtn = this._makeDownloadBtn(CX + 192, 430, 'assets/cutscene/message.jpeg', 'letter.jpeg');
+    photoDlBtn.setAlpha(0);
+    letterDlBtn.setAlpha(0);
+
     const hint = this.add.text(CX, GAME_HEIGHT - 14, '[ click to continue ]', {
       fontFamily: FONT, fontSize: '9px', fill: '#888899',
     }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
     this.tweens.add({ targets: [frame, photo], alpha: 1, duration: 700 });
     this.time.delayedCall(600, () => {
-      this.tweens.add({ targets: letter, alpha: 1, duration: 600 });
+      this.tweens.add({ targets: [letter, photoDlBtn, letterDlBtn], alpha: 1, duration: 600 });
       this.time.delayedCall(500, () => {
         this.tweens.add({ targets: hint, alpha: 1, duration: 300 });
         this.tweens.add({ targets: hint, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
@@ -158,15 +163,44 @@ export default class EndingScene extends Phaser.Scene {
       });
     });
 
-    this.input.once('pointerdown', () => {
+    this.input.on('pointerdown', (ptr) => {
       if (this._phase !== 'photo_ready') return;
+      // ignore clicks on download buttons
+      if (photoDlBtn.getBounds().contains(ptr.x, ptr.y)) return;
+      if (letterDlBtn.getBounds().contains(ptr.x, ptr.y)) return;
       this._phase = 'done';
+      this.input.off('pointerdown');
       this.cameras.main.fadeOut(800, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
-        [frame, photo, letter, hint].forEach(o => o.destroy());
+        [frame, photo, letter, photoDlBtn, letterDlBtn, hint].forEach(o => o.destroy());
         this._buildCreditsPhase();
       });
     });
+  }
+
+  _makeDownloadBtn(x, y, href, filename) {
+    const bg = this.add.rectangle(x, y, 22, 22, 0x222244, 0.85)
+      .setDepth(8).setInteractive({ useHandCursor: true });
+    const icon = this.add.text(x, y, '⬇', {
+      fontFamily: FONT, fontSize: '13px', fill: '#FFD700',
+    }).setOrigin(0.5).setDepth(9);
+
+    bg.on('pointerover',  () => bg.setFillStyle(0x4444aa, 0.95));
+    bg.on('pointerout',   () => bg.setFillStyle(0x222244, 0.85));
+    bg.on('pointerdown',  () => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = filename;
+      a.click();
+    });
+
+    // Return a container-like object with setAlpha and getBounds
+    const self = {
+      setAlpha: (v) => { bg.setAlpha(v); icon.setAlpha(v); return self; },
+      getBounds: () => bg.getBounds(),
+      destroy:   () => { bg.destroy(); icon.destroy(); },
+    };
+    return self;
   }
 
   // ── PHASE 4 : Credits ─────────────────────────────────────────────────────
