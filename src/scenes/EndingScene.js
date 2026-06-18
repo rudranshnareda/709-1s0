@@ -256,7 +256,7 @@ export default class EndingScene extends Phaser.Scene {
     this.cameras.main.fadeIn(1000, 0, 0, 0);
 
     const entries = [
-      { text: '709 - 1s0',                  size: '28px', color: '#FFFFFF', dy: -200 },
+      { text: 'where are you?',              size: '22px', color: '#FFFFFF', dy: -200 },
       { text: 'A  J A I P U R  T A L E',   size: '11px', color: '#9999DD', dy: -148 },
       { text: '————————————————————',       size: '10px', color: '#222244', dy: -100 },
       { text: 'Made with love by',          size: '10px', color: '#888899', dy:  -62 },
